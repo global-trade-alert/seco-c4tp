@@ -10,7 +10,7 @@ project.path="0 projects/57 SECO C4TP/"
 
 
 ## setup
-seco.country="Peru"
+seco.country="Serbia"
 result.path=paste0(project.path,"results/",seco.country,"/")
 xlsx.path=paste0(result.path, "GTA data for ",seco.country, ".xlsx")
 
@@ -224,7 +224,7 @@ gta_trade_coverage(gta.evaluation=c("red","amber"),
                    keep.type = T)
 names(trade.coverage.estimates)=c("importer", "exporter","nr.interventions","all.instruments.noes")
 trade.coverage=merge(trade.coverage,
-                     trade.coverage.estimates[,c("importer","traditional.instruments")],
+                     trade.coverage.estimates[,c("importer","all.instruments.noes")],
                      by="importer", all=T)
 
 
@@ -320,7 +320,7 @@ names(trade.coverage.xlsx)=c("Importer","All instruments", "All instruments excl
                              "Procurement measures", "Localisation measures","Export incentives")
 
 xlsx::write.xlsx(trade.coverage.xlsx, file=xlsx.path, sheetName = "Export coverage (harmful)", append=T, row.names = F)
-
+rm(trade.coverage.xlsx, trade.coverage)
 
 
 ## (2b) export coverage statistics - liberalising
@@ -349,7 +349,7 @@ gta_trade_coverage(gta.evaluation=c("green"),
                    keep.type = T)
 names(trade.coverage.estimates)=c("importer", "exporter","nr.interventions","all.instruments.noes")
 trade.coverage=merge(trade.coverage,
-                     trade.coverage.estimates[,c("importer","traditional.instruments")],
+                     trade.coverage.estimates[,c("importer","all.instruments.noes")],
                      by="importer", all=T)
 
 ## traditional
