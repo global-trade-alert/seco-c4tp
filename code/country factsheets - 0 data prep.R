@@ -10,7 +10,7 @@ project.path="0 projects/57 SECO C4TP/"
 
 
 ## setup
-seco.country="Serbia"
+seco.country="Peru"
 result.path=paste0(project.path,"results/",seco.country,"/")
 xlsx.path=paste0(result.path, "GTA data for ",seco.country, ".xlsx")
 
