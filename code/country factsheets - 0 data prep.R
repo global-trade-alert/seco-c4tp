@@ -2,6 +2,7 @@ library(gtalibrary)
 library(ggplot2)
 library(data.table)
 library(splitstackshape)
+library(tidyverse)
 gta_colour_palette()
 
 gta_setwd()
@@ -28,11 +29,17 @@ int.mast.types$intervention.type[!int.mast.types$intervention.type %in% inst.all
 
 
 
+exports = data.frame(i.un = numeric(), a.un = numeric(), hs6 = numeric(), trade.value = numeric(), Year = numeric())
+
 ## loading country trade data
-gta_trade_value_bilateral(exporting.country = seco.country,
-                          keep.exporter=T,
-                          trade.data=2020)
-exports=trade.base.bilateral
+for (i in (2016:2020)){
+  gta_trade_value_bilateral(exporting.country = seco.country,
+                            keep.exporter=T,
+                            trade.data=i)
+  trade.base.bilateral = trade.base.bilateral%>% mutate(Year = i)
+  exports = rbind(exports, trade.base.bilateral)
+}
+
 
 gta_trade_value_bilateral(importing.country = seco.country,
                           keep.importer = T,
@@ -42,13 +49,21 @@ imports=trade.base.bilateral
 
 ## top products
 
-
-
 ## top sectors
 
 ## top origins
 
 ## top destinations
+
+exports = exports%>% group_by(i.un,Year)%>% summarize(`Total exports` = sum(trade.value))
+countries = head(unique(exports$i.un[order(exports$`Total exports`,decreasing = TRUE)]), 10)
+exports = exports[exports$i.un %in% countries, ]
+exports = spread(exports, key = Year, value = `Total exports`)
+exports$i.un = gtalibrary::country.names$name[gtalibrary::country.names$un_code %in% exports$i.un]
+exports = exports[order(-exports$`2020`), ]
+names(exports)[names(exports)=="i.un"] = "Importing jurisdiction"
+
+xlsx::write.xlsx(exports, file=xlsx.path, sheetName = "Top 10 export destinations", row.names = F)
 
 
 ## (1) GTA intervention counts
@@ -73,7 +88,7 @@ gta.data=unique(master.sliced[,c("state.act.id","intervention.id", "implementing
                                  "currently.in.force", "date.announced","date.implemented","date.removed",
                                  "affected.sector","affected.product")])
 
-## cummulative interventions per year
+## Total interventions per year
 int.per.year = expand.grid(Year = c(2009:year(Sys.Date())))
  
 for (date in unique(int.per.year$Year)){
@@ -83,7 +98,20 @@ for (date in unique(int.per.year$Year)){
   int.per.year$`of which harmful`[int.per.year$Year==date] = length(unique(subset(gta.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date) & gta.evaluation!="Green")$intervention.id))
 }
 
-xlsx::write.xlsx(int.per.year, file=xlsx.path, sheetName = "Total interventions, annual", row.names = F)
+xlsx::write.xlsx(int.per.year, file=xlsx.path, sheetName = "Total interventions, annual", row.names = F, append = T)
+
+# Total interventions per year for main markets (US, Eu-27 and China) and top 5 importing jurisdictions
+
+int.per.year.country = expand.grid(Year = c(2009:year(Sys.Date())))
+
+for (date in unique(int.per.year$Year)){
+  
+  int.per.year$`Total number of interventions`[int.per.year$Year==date] = length(unique(subset(gta.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date))$intervention.id))
+  int.per.year$`of which liberalising`[int.per.year$Year==date] = length(unique(subset(gta.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date) & gta.evaluation=="Green")$intervention.id))
+  int.per.year$`of which harmful`[int.per.year$Year==date] = length(unique(subset(gta.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date) & gta.evaluation!="Green")$intervention.id))
+}
+
+xlsx::write.xlsx(int.per.year, file=xlsx.path, sheetName = "Total interventions, annual", row.names = F, append = T)
 
 
 # Interventions per year
@@ -212,6 +240,8 @@ names(int.hs)=c("Product code (HS 2012)", "Product name","Total implemented sinc
                 "Total in force today","of which liberalising","of which harmful")
 
 xlsx::write.xlsx(int.hs, file=xlsx.path, sheetName = "Interventions per product", row.names = F, append=T)
+
+
 
 
 ## (2a) export coverage statistics - harmful
