@@ -73,23 +73,38 @@ gta.data=unique(master.sliced[,c("state.act.id","intervention.id", "implementing
                                  "currently.in.force", "date.announced","date.implemented","date.removed",
                                  "affected.sector","affected.product")])
 
-## interventions per year
-int.per.year=merge(data.frame(year=c(2009:year(Sys.Date()))),
+## cummulative interventions per year
+int.per.year = expand.grid(Year = c(2009:year(Sys.Date())))
+ 
+for (date in unique(int.per.year$Year)){
+
+  int.per.year$`Total number of interventions`[int.per.year$Year==date] = length(unique(subset(gta.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date))$intervention.id))
+  int.per.year$`of which liberalising`[int.per.year$Year==date] = length(unique(subset(gta.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date) & gta.evaluation=="Green")$intervention.id))
+  int.per.year$`of which harmful`[int.per.year$Year==date] = length(unique(subset(gta.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date) & gta.evaluation!="Green")$intervention.id))
+}
+
+xlsx::write.xlsx(int.per.year, file=xlsx.path, sheetName = "Total interventions, annual", row.names = F)
+
+
+# Interventions per year
+
+new.int.per.year=merge(data.frame(year=c(2009:year(Sys.Date()))),
                    aggregate(intervention.id  ~ year(date.implemented), gta.data, function(x) length(unique(x))),
                    by.x="year", by.y="year(date.implemented)", all.x=T)
 
-int.per.year=merge(int.per.year,
+new.int.per.year=merge(new.int.per.year,
                    aggregate(intervention.id  ~ year(date.implemented), subset(gta.data, gta.evaluation=="Green"), function(x) length(unique(x))),
                    by.x="year", by.y="year(date.implemented)", all.x=T)
 
-int.per.year=merge(int.per.year,
+new.int.per.year=merge(new.int.per.year,
                    aggregate(intervention.id  ~ year(date.implemented), subset(gta.data, gta.evaluation!="Green"), function(x) length(unique(x))),
                    by.x="year", by.y="year(date.implemented)", all.x=T)
 
-int.per.year[is.na(int.per.year)]=0
-names(int.per.year)=c("Year", "Total number of newly implemented interventions", "of which liberalising","of which harmful")
+new.int.per.year[is.na(new.int.per.year)]=0
+names(new.int.per.year)=c("Year", "Total number of newly implemented interventions", "of which liberalising","of which harmful")
 
-xlsx::write.xlsx(int.per.year, file=xlsx.path, sheetName = "New interventions, annual", row.names = F)
+
+xlsx::write.xlsx(new.int.per.year, file=xlsx.path, sheetName = "New interventions, annual", row.names = F, append = T)
 
 
 # interventions per instrument group
