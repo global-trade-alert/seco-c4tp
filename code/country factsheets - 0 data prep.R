@@ -3,6 +3,7 @@ library(ggplot2)
 library(data.table)
 library(splitstackshape)
 library(tidyverse)
+library(openxlsx)
 gta_colour_palette()
 
 gta_setwd()
@@ -11,9 +12,10 @@ project.path="0 projects/57 SECO C4TP/"
 
 
 ## setup
-seco.country="Peru"
+seco.country="Serbia"
 result.path=paste0(project.path,"results/",seco.country,"/")
 xlsx.path=paste0(result.path, "GTA data for ",seco.country, ".xlsx")
+data.path=paste0(project.path, "data/")
 
 inst.traditional=c(int.mast.types$intervention.type[int.mast.types$is.murky==F & int.mast.types$mast.chapter.id!="D"], "Internal taxation of imports", "Import ban", "Import licensing requirement")
 inst.traditional=inst.traditional[! inst.traditional %in% c("Instrument unclear")]
@@ -29,7 +31,7 @@ int.mast.types$intervention.type[!int.mast.types$intervention.type %in% inst.all
 
 
 
-exports = data.frame(i.un = numeric(), a.un = numeric(), hs6 = numeric(), trade.value = numeric(), Year = numeric())
+exports.base = data.frame(i.un = numeric(), a.un = numeric(), hs6 = numeric(), trade.value = numeric(), Year = numeric())
 
 ## loading country trade data
 for (i in (2016:2020)){
@@ -37,7 +39,7 @@ for (i in (2016:2020)){
                             keep.exporter=T,
                             trade.data=i)
   trade.base.bilateral = trade.base.bilateral%>% mutate(Year = i)
-  exports = rbind(exports, trade.base.bilateral)
+  exports.base = rbind(exports.base, trade.base.bilateral)
 }
 
 
@@ -47,23 +49,23 @@ gta_trade_value_bilateral(importing.country = seco.country,
 imports=trade.base.bilateral
 
 
-## top products
+# Top ten exporting destinations (for 2020 values)
+exports = exports.base%>% group_by(i.un,Year)%>% summarize(`Total exports` = sum(trade.value))
+countries = head(unique(exports$i.un[order(exports$`Total exports`, exports$Year, decreasing = TRUE)]), 10)
+exports = exports[exports$i.un %in% countries, ]
+exports.2 = spread(exports, key = Year, value = `Total exports`)
+exports.2$i.un = gtalibrary::country.names$name[gtalibrary::country.names$un_code %in% exports.2$i.un]
+exports.2 = exports.2[order(-exports.2$`2020`), ]
+exports.2 = data.frame(exports.2)
+names(exports.2) = c("Export destination", "2016", "2017", "2018", "2019", "2020")
+xlsx::write.xlsx(exports.2, file=xlsx.path, sheetName = "Top 10 export destinations", row.names = F)
+
+
 
 ## top sectors
 
 ## top origins
 
-## top destinations
-
-exports = exports%>% group_by(i.un,Year)%>% summarize(`Total exports` = sum(trade.value))
-countries = head(unique(exports$i.un[order(exports$`Total exports`,decreasing = TRUE)]), 10)
-exports = exports[exports$i.un %in% countries, ]
-exports = spread(exports, key = Year, value = `Total exports`)
-exports$i.un = gtalibrary::country.names$name[gtalibrary::country.names$un_code %in% exports$i.un]
-exports = exports[order(-exports$`2020`), ]
-names(exports)[names(exports)=="i.un"] = "Importing jurisdiction"
-
-xlsx::write.xlsx(exports, file=xlsx.path, sheetName = "Top 10 export destinations", row.names = F)
 
 
 ## (1) GTA intervention counts
@@ -88,6 +90,7 @@ gta.data=unique(master.sliced[,c("state.act.id","intervention.id", "implementing
                                  "currently.in.force", "date.announced","date.implemented","date.removed",
                                  "affected.sector","affected.product")])
 
+
 ## Total interventions per year
 int.per.year = expand.grid(Year = c(2009:year(Sys.Date())))
  
@@ -100,18 +103,40 @@ for (date in unique(int.per.year$Year)){
 
 xlsx::write.xlsx(int.per.year, file=xlsx.path, sheetName = "Total interventions, annual", row.names = F, append = T)
 
+
 # Total interventions per year for main markets (US, Eu-27 and China) and top 5 importing jurisdictions
 
-int.per.year.country = expand.grid(Year = c(2009:year(Sys.Date())))
+countries.5 = countries[1:5]
+top.five.countries = countries.5[!(countries.5 %in% c(840, 156))]
+top.five.countries = gtalibrary::country.names$name[gtalibrary::country.names$un_code %in% top.five.countries]
 
-for (date in unique(int.per.year$Year)){
-  
-  int.per.year$`Total number of interventions`[int.per.year$Year==date] = length(unique(subset(gta.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date))$intervention.id))
-  int.per.year$`of which liberalising`[int.per.year$Year==date] = length(unique(subset(gta.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date) & gta.evaluation=="Green")$intervention.id))
-  int.per.year$`of which harmful`[int.per.year$Year==date] = length(unique(subset(gta.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date) & gta.evaluation!="Green")$intervention.id))
+int.per.year.country = expand.grid(Year = c(2009:year(Sys.Date())), `Main markets` = c("United States of America", "China", top.five.countries))
+#re add EU afterwards on its own
+
+for (date in unique(int.per.year.country$Year)){
+  for (country in unique(int.per.year.country$`Main markets`)){
+    
+    int.per.year.country$`Total number of interventions`[int.per.year.country$Year==date & int.per.year.country$`Main markets`==country] = length(unique(subset(gta.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date) & implementing.jurisdiction==country)$intervention.id))
+    int.per.year.country$`of which liberalising`[int.per.year.country$Year==date & int.per.year.country$`Main markets`==country] = length(unique(subset(gta.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date) & gta.evaluation=="Green" & implementing.jurisdiction==country)$intervention.id))
+    int.per.year.country$`of which harmful`[int.per.year.country$Year==date & int.per.year.country$`Main markets`==country] = length(unique(subset(gta.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date) & gta.evaluation!="Green" & implementing.jurisdiction==country)$intervention.id))
+  }
 }
 
-xlsx::write.xlsx(int.per.year, file=xlsx.path, sheetName = "Total interventions, annual", row.names = F, append = T)
+#EU-27 chart
+eu.data = gta.data[gta.data$implementing.jurisdiction %in% gtalibrary::country.names$name[country.names$is.eu==T],]
+eu.data = eu.data[eu.data$implementing.jurisdiction!="United Kingdom", ]
+int.per.year.eu = expand.grid(Year = c(2009:year(Sys.Date())), `Main markets` = "EU-27")
+
+for (date in unique(int.per.year.eu$Year)){
+    
+  int.per.year.eu$`Total number of interventions`[int.per.year.eu$Year==date] = length(unique(subset(eu.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date))$intervention.id))
+  int.per.year.eu$`of which liberalising`[int.per.year.eu$Year==date] = length(unique(subset(eu.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date) & gta.evaluation=="Green")$intervention.id))
+  int.per.year.eu$`of which harmful`[int.per.year.eu$Year==date] = length(unique(subset(eu.data, year(date.implemented)<=date & (is.na(year(date.removed)) | year(date.removed)>date) & gta.evaluation!="Green")$intervention.id))
+}
+
+int.per.year.country = rbind(int.per.year.country, int.per.year.eu)
+
+xlsx::write.xlsx(int.per.year.country, file=xlsx.path, sheetName = "Total interventions, annual", row.names = F, append = T)
 
 
 # Interventions per year
@@ -491,6 +516,56 @@ names(trade.coverage.xlsx)=c("Importer","All instruments", "All instruments excl
 xlsx::write.xlsx(trade.coverage.xlsx, file=xlsx.path, sheetName = "Export coverage (liberalising)", append=T, row.names = F)
 
 
+# Export gap analysis #
+## top 10 destinations
+countries
+## top 10 products
+exports.products = exports.base%>% group_by(hs6,Year)%>% summarize(`Total exports per product` = sum(trade.value))
+products = head(unique(exports.products$hs6[order(exports.products$`Total exports per product`, exports.products$Year, decreasing = TRUE)]), 10)
+exports.products = exports.products[exports.products$hs6 %in% products, ]
+exports.products = exports.products[exports.products$Year==2020, ]
+export.products.other = exports.base%>% group_by(hs6,Year,i.un)%>% summarize(`Total exports per product` = sum(trade.value))
+exports.base.2020 = exports.base[exports.base$Year==2020,]
+#imports of top 10 products for the top 10 destinations
+gta_trade_value_bilateral(importing.country = countries,
+                          keep.importer = T,
+                          hs.codes = products,
+                          keep.hs = T,
+                          trade.data = 2020, 
+                          df.name = "source.2020")
+#find out which tuples are missing
+`%notin%` = Negate(`%in%`)
+export.gap = data.frame(`export destination` = character(),`export product name` = character(),	
+                        `global product export value` = numeric(),	`exports 2018` = numeric(),	`exports 2019` = numeric(),	
+                        `exports 2020` = numeric(), `source in 2020` = character())
+source.country.2020 = c()
+
+for (country in countries){
+  for(product in products[products %notin% exports.base.2020$hs6[exports.base.2020$i.un==country & exports.base.2020$Year==2020]]){
+    new = data.frame(`export destination` = gtalibrary::country.names$name[country.names$un_code==country],
+                    #`export destination` = country,
+                     `export product name` = gtalibrary::hs.codes$hs.description[hs.codes$hs.code==product],
+                     `global product export value` = exports.products$`Total exports per product`[exports.products$hs6 == product],
+                     `exports 2018` = if(country %in% export.products.other$i.un[export.products.other$Year==2018 & export.products.other$hs6==product]){
+                       export.products.other$`Total exports per product`[export.products.other$Year==2018 & export.products.other$i.un==country & export.products.other$hs6==product]
+                     }else {0},
+                     `exports 2019` = if(country %in% export.products.other$i.un[export.products.other$Year==2019 & export.products.other$hs6==product]){
+                       export.products.other$`Total exports per product`[export.products.other$Year==2019 & export.products.other$i.un==country & export.products.other$hs6==product]
+                     }else {0},
+                     `exports 2020` = 0,
+                     `source in 2020` = NA)
+    #adding the sourcing of this product in 2020 from other countries 
+    if(country %in% source.2020$i.un[source.2020$hs6==product]){
+      source.country.2020 = source.2020$a.un[source.2020$i.un==country & source.2020$hs6==product]
+      source.country.2020 = gtalibrary::country.names$name[country.names$un_code %in% source.country.2020]
+      new$source.in.2020 = as.character(paste(source.country.2020, collapse = ", "))
+    }else {new$source.in.2020 = "No imports for this product in 2020"}
+    export.gap = rbind(export.gap, new)
+  }
+}
+
+xlsx::write.xlsx(export.gap, file=xlsx.path, sheetName = "Export gap analysis", append=T, row.names = F)
+
 
 ## (3) GTA interventions
 
@@ -507,4 +582,8 @@ xlsx::write.xlsx(gta.data.xlsx, file=xlsx.path, sheetName = "GTA entries", appen
 file.copy("0 projects/57 SECO C4TP/0 country assessment note/GTA country assessment support - accompanying note.pdf",
           paste0(result.path,"GTA country assessment support - accompanying note.pdf"), overwrite = T)
 
+
+
+#######
+save(gta.data, path = data.path, file = paste0(data.path, seco.country, ".Rdata"))
 

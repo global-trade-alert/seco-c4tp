@@ -17,7 +17,7 @@ project.path="0 projects/57 SECO C4TP/"
 
 
 ## setup
-seco.country="Peru"
+seco.country="Serbia"
 result.path=paste0(project.path,"results/",seco.country,"/")
 data.path=paste0(project.path, "data/")
 load(paste0(data.path, seco.country, ".Rdata"))
@@ -47,7 +47,7 @@ plot.green = ggplot() +
   ggtitle("Total liberalising interventions per country")+
   scale_fill_gradientn(name="Number of interventions per implementer",
                        na.value="#c6c6c6",
-                       limits=c(0,max(plot.data.green$value, na.rm=T)),
+                       limits=c(0,max(plot.data.green$value, na.rm=T)+0.001),
                        colors = c(gta_colour$green[4], gta_colour$green[2], gta_colour$green[1]),
                        breaks=round(seq(0, max(plot.data.green$value, na.rm = T), max(plot.data.green$value, na.rm=T) / 4)),
                        guide=guide_colorbar(barwidth=13, label.hjust = 0.5, title.position = "top"),
@@ -65,17 +65,20 @@ plot.green = ggplot() +
         legend.direction = "horizontal",
         plot.title = element_text(family = "Open Sans", face = "bold", colour = "#333333", size = 11.5, hjust = 0.5, margin = margin(b=10,t=20)),
         plot.subtitle = element_text(family = "Open Sans", face = "bold", colour = "#333333", size = 8, hjust = 0.5, margin = margin(b=10)),
-        legend.title = element_text(vjust= 0.3, hjust = 0.5, family="", colour = "#333333", size = 11*0.8, margin = margin(r=10,b=5)),
-        legend.text = element_text(family="", colour = "#333333", size = 11*0.8, angle = 0, hjust=0, vjust=1, margin = margin(r=10)),
+        legend.title = element_text(vjust= 0.3, hjust = 0.5, family="", colour = "#333333", size = 8, margin = margin(r=10,b=5)),
+        legend.text = element_text(family="", colour = "#333333", size = 8, angle = 0, hjust=0, vjust=1, margin = margin(r=10)),
         legend.text.align = 0,
         legend.key = element_rect(size=0),
+        #legend.key.width = unit(1, 'line'),
+        legend.key.height = unit(0.5, 'cm'),
         legend.background = element_rect(fill="transparent"),
         plot.background = element_rect(fill="#F9F9F9"),
         plot.margin = unit(c(0,0.04,0.05,0.04), "in"),
         plot.caption = element_text(hjust = 0.5, vjust = 0, margin = margin(t=43,b=1),size=7, color="#777777")
         
   ) +
-  guides(fill=guide_legend(title="", label.position = "bottom",title.position = "top",col = guide_legend(nrow = 1,byrow = F)),
+  guides(
+    #fill=guide_legend(title="", label.position = "bottom",title.position = "top",col = guide_legend(nrow = 1,byrow = F)),
          ymax=guide_legend(title="size"))
 plot.green
 
@@ -85,8 +88,8 @@ gta_plot_saver(plot=plot.green,
                png=T,
                pdf=F,
                jpg=F,
-               width = 17.1,
-               height = 12.5)
+               width = 20,
+               height = 14)
 
 # Harmful
 
@@ -132,13 +135,15 @@ plot.red = ggplot() +
         legend.text = element_text(family="", colour = "#333333", size = 11*0.8, angle = 0, hjust=0, vjust=1, margin = margin(r=10)),
         legend.text.align = 0,
         legend.key = element_rect(size=0),
+        legend.key.height = unit(0.5, 'cm'),
         legend.background = element_rect(fill="transparent"),
         plot.background = element_rect(fill="#F9F9F9"),
         plot.margin = unit(c(0,0.04,0.05,0.04), "in"),
         plot.caption = element_text(hjust = 0.5, vjust = 0, margin = margin(t=43,b=1),size=7, color="#777777")
         
   ) +
-  guides(fill=guide_legend(title="", label.position = "bottom",title.position = "top",col = guide_legend(nrow = 1,byrow = F)),
+  guides(
+    #fill=guide_legend(title="", label.position = "bottom",title.position = "top",col = guide_legend(nrow = 1,byrow = F)),
          ymax=guide_legend(title="size"))
 plot.red
 
@@ -148,8 +153,8 @@ gta_plot_saver(plot=plot.red,
                png=T,
                pdf=F,
                jpg=F,
-               width = 17.1,
-               height = 12.5)
+               width = 20,
+               height = 14)
 
 
 
