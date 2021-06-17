@@ -27,7 +27,7 @@ load(paste0(data.path, seco.country, ".Rdata"))
 # Interventions per implementer: 
 # Create a map for liberalising and one for harmful interventions. 
 # Use the counts for the colour shading and green for liberalising, red for harmful.
-plot.data = gta.data%>% group_by(implementing.jurisdiction, gta.evaluation)%>% summarize(value = n())
+plot.data = subset(gta.data, is.na(date.implemented)==F & (is.na(date.removed)|date.removed>=Sys.Date()))%>% group_by(implementing.jurisdiction, gta.evaluation)%>% summarize(value = n())
 plot.data$implementing.jurisdiction = as.character(plot.data$implementing.jurisdiction)
 
 # Liberalising
