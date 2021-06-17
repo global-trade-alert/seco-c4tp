@@ -36,22 +36,32 @@ plotname = paste0("Map of liberalising interventions - ", seco.country)
 
 plot.data.green = gta_plot_map_df(data = subset(plot.data, gta.evaluation=="Green"), countries="implementing.jurisdiction", values="value")
 
+
+if(max(plot.data.green$value, na.rm = T)>=100){
+  
+  legend.max=round(max(plot.data.green$value, na.rm = T)/100,0)*100
+  
+} else {
+  
+  legend.max = 100
+}
+
+
 plot.green = ggplot() +
   geom_polygon(data= subset(plot.data.green, country != "Antarctica"), aes(x = long, y = lat, group = group), fill="#dadada", size = 0.15, color = "white") +
   geom_polygon(data= subset(plot.data.green, country != "Antarctica"), aes(x = long, y = lat, group = group, fill=(value)), size = 0.15, color = "white") +
   geom_polygon(data=subset(plot.data.green, country == "Greenland"), aes(x=long, y=lat, group = group), fill="#dadada", size = 0.15, colour = "white") +
   coord_fixed() + # Important to fix world map proportions
   scale_x_continuous(limits=c(-13900000,17000000))+
-  labs(x="", y="",caption=paste0("Source: Global Trade Alert"),
-       subtitle = paste0("Affecting ", seco.country, " exports since 2008")) +
-  ggtitle("Total liberalising interventions per country")+
-  scale_fill_gradientn(name="Number of interventions per implementer",
+  labs(x="", y="",caption=paste0("Source: Global Trade Alert Database. Data extracted on ",Sys.Date(), ".")) +
+  ggtitle(paste0("Increased export opportunities for ", seco.country))+
+  scale_fill_gradientn(name="Number of interventions currently in force",
                        na.value="#c6c6c6",
-                       limits=c(0,max(plot.data.green$value, na.rm=T)+0.001),
-                       colors = c(gta_colour$green[4], gta_colour$green[2], gta_colour$green[1]),
-                       breaks=round(seq(0, max(plot.data.green$value, na.rm = T), max(plot.data.green$value, na.rm=T) / 4)),
+                       limits=c(0,legend.max),
+                       colors = gta_colour$green.shades(7)[c(7,5,3,1)],
+                       breaks=round(seq(0, legend.max, legend.max / 5)),
                        guide=guide_colorbar(barwidth=13, label.hjust = 0.5, title.position = "top"),
-                       labels=round(seq(0, max(plot.data.green$value, na.rm = T), max(plot.data.green$value, na.rm=T) / 4)))+
+                       labels=round(seq(0, legend.max, legend.max / 5)))+
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
@@ -102,22 +112,31 @@ for (country in unique(plot.data$implementing.jurisdiction)){
 plot.data = plot.data[plot.data$gta.evaluation!="Amber",]
 plot.data.red = gta_plot_map_df(data = subset(plot.data, gta.evaluation=="Red"), countries="implementing.jurisdiction", values="value")
 
+
+if(max(plot.data.red$value, na.rm = T)>=100){
+  
+  legend.max=round(max(plot.data.red$value, na.rm = T)/100,0)*100
+  
+} else {
+  
+  legend.max = 100
+}
+
 plot.red = ggplot() +
   geom_polygon(data= subset(plot.data.red, country != "Antarctica"), aes(x = long, y = lat, group = group), fill="#dadada", size = 0.15, color = "white") +
   geom_polygon(data= subset(plot.data.red, country != "Antarctica"), aes(x = long, y = lat, group = group, fill=(value)), size = 0.15, color = "white") +
   geom_polygon(data=subset(plot.data.red, country == "Greenland"), aes(x=long, y=lat, group = group), fill="#dadada", size = 0.15, colour = "white") +
   coord_fixed() + # Important to fix world map proportions
   scale_x_continuous(limits=c(-13900000,17000000))+
-  labs(x="", y="",caption=paste0("Source: Global Trade Alert"),
-       subtitle = paste0("Affecting ", seco.country, " exports since 2008")) +
-  ggtitle("Total harmful interventions per country")+
-  scale_fill_gradientn(name="Number of interventions per implementer",
+  labs(x="", y="",caption=paste0("Source: Global Trade Alert Database. Data extracted on ",Sys.Date(), ".")) +
+  ggtitle(paste0("Diminished export opportunities for ", seco.country))+
+  scale_fill_gradientn(name="Number of interventions currently in force",
                        na.value="#c6c6c6",
-                       limits=c(0,max(plot.data.red$value, na.rm=T)),
-                       colors = c(gta_colour$amber[1],"#CC0000", "#990000"),
-                       breaks=round(seq(0, max(plot.data.red$value, na.rm = T), max(plot.data.red$value, na.rm=T) / 4)),
+                       limits=c(0,legend.max),
+                       colors = gta_colour$red.shades(7)[c(7,5,3,1)],
+                       breaks=round(seq(0, legend.max, legend.max / 5)),
                        guide=guide_colorbar(barwidth=13, label.hjust = 0.5, title.position = "top"),
-                       labels=round(seq(0, max(plot.data.red$value, na.rm = T), max(plot.data.red$value, na.rm=T) / 4)))+
+                       labels=round(seq(0, legend.max, legend.max / 5)))+
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
